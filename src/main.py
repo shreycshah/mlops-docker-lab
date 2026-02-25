@@ -1,8 +1,21 @@
 from flask import Flask, request, jsonify, render_template
 import tensorflow as tf
 import numpy as np
+import os
 
-app = Flask(__name__, static_folder='statics')
+# Detect paths — works for both Dockerfile and Docker Compose
+# Dockerfile:       main.py is at /app/main.py,     templates at /app/templates/
+# Docker Compose:   main.py is at /app/src/main.py,  templates at /app/src/templates/
+base_dir = os.path.dirname(os.path.abspath(__file__))
+template_path = os.path.join(base_dir, 'templates')
+static_path = os.path.join(base_dir, 'statics')
+
+app = Flask(
+    __name__,
+    template_folder=template_path,
+    static_folder=static_path,
+    static_url_path='/static'
+)
 
 # Load the TensorFlow model
 model = tf.keras.models.load_model('breast_cancer_model.keras')
@@ -17,7 +30,7 @@ class_labels = ['Malignant', 'Benign']
 
 @app.route('/')
 def home():
-    return "Welcome to the Breast Cancer Prediction API!"
+    return render_template('predict.html')
 
 
 @app.route('/predict', methods=['GET', 'POST'])
@@ -30,19 +43,15 @@ def predict():
             mean_smoothness = float(data['mean_smoothness'])
             mean_perimeter = float(data['mean_perimeter'])
 
-            # Prepare input in the same order as training
             input_data = np.array(
                 [mean_radius, mean_texture, mean_smoothness, mean_perimeter]
             )[np.newaxis, :]
 
-            # Apply the same StandardScaler transformation as training
             input_scaled = (input_data - scaler_mean) / scaler_scale
 
-            # Predict
             prediction = model.predict(input_scaled)
             probability = float(prediction[0][0])
 
-            # sigmoid output: > 0.5 = Benign (1), <= 0.5 = Malignant (0)
             predicted_index = 1 if probability > 0.5 else 0
             predicted_class = class_labels[predicted_index]
             confidence = probability if predicted_index == 1 else (1 - probability)
