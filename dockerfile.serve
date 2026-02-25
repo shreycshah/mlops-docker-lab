@@ -1,0 +1,12 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+COPY requirements.txt /app/
+RUN pip install --trusted-host pypi.python.org -r requirements.txt
+
+COPY src/main.py /app/main.py
+COPY src/templates/ /app/templates/
+COPY src/statics/ /app/statics/
+
+EXPOSE 80

@@ -1,0 +1,38 @@
+services:
+  # Service 1: Train the breast cancer model
+  model-training:
+    image: python:3.10-slim
+    container_name: bc_trainer
+    working_dir: /app
+    volumes:
+      - ./src:/app/src
+      - ./requirements.txt:/app/requirements.txt
+      - model_exchange:/exchange
+    command: >
+      sh -c "pip install -r requirements.txt &&
+             python src/model_training.py &&
+             cp breast_cancer_model.keras /exchange/breast_cancer_model.keras &&
+             cp scaler_mean.npy /exchange/scaler_mean.npy &&
+             cp scaler_scale.npy /exchange/scaler_scale.npy"
+
+  # Service 2: Serve predictions via Flask
+  serving:
+    build:
+      context: .
+      dockerfile: dockerfile.serve
+    container_name: bc_serving
+    ports:
+      - "80:80"
+    volumes:
+      - model_exchange:/exchange
+    depends_on:
+      model-training:
+        condition: service_completed_successfully
+    command: >
+      sh -c "cp /exchange/breast_cancer_model.keras /app/breast_cancer_model.keras &&
+             cp /exchange/scaler_mean.npy /app/scaler_mean.npy &&
+             cp /exchange/scaler_scale.npy /app/scaler_scale.npy &&
+             python main.py"
+
+volumes:
+  model_exchange:
