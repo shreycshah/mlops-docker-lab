@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Breast Cancer Prediction</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 500px; margin: 40px auto; padding: 0 20px; }
+        h1 { font-size: 1.4rem; }
+        label { display: block; margin-top: 12px; font-size: 0.9rem; }
+        input { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
+        button { margin-top: 16px; padding: 10px 24px; cursor: pointer; }
+        #result { margin-top: 20px; display: none; }
+        #result img { max-width: 100%; margin-top: 10px; }
+        .disclaimer { margin-top: 30px; font-size: 0.7rem; color: #888; }
+    </style>
+</head>
+<body>
+    <h1>Breast Cancer Prediction</h1>
+
+    <form id="predictionForm">
+        <label>Mean Radius
+            <input type="number" id="mean_radius" step="0.01" placeholder="e.g. 14.5" required>
+        </label>
+        <label>Mean Texture
+            <input type="number" id="mean_texture" step="0.01" placeholder="e.g. 19.3" required>
+        </label>
+        <label>Mean Smoothness
+            <input type="number" id="mean_smoothness" step="0.0001" placeholder="e.g. 0.1001" required>
+        </label>
+        <label>Mean Perimeter
+            <input type="number" id="mean_perimeter" step="0.01" placeholder="e.g. 92.0" required>
+        </label>
+        <button type="submit">Predict</button>
+    </form>
+
+    <div id="result">
+        <h2 id="prediction"></h2>
+        <p id="confidence"></p>
+        <img id="resultImage" alt="result"
+             data-benign="{{ url_for('static', filename='benign.jpg') }}"
+             data-malignant="{{ url_for('static', filename='malign.jpg') }}" />
+    </div>
+
+    <p class="disclaimer">Disclaimer: This is for educational purposes only. Not intended for clinical diagnosis.</p>
+
+    <script>
+        $('#predictionForm').on('submit', function(e) {
+            e.preventDefault();
+            $.post('/predict', {
+                mean_radius: $('#mean_radius').val(),
+                mean_texture: $('#mean_texture').val(),
+                mean_smoothness: $('#mean_smoothness').val(),
+                mean_perimeter: $('#mean_perimeter').val()
+            }, function(data) {
+                $('#prediction').text('Prediction: ' + data.predicted_class);
+                $('#confidence').text('Confidence: ' + data.confidence + '%');
+                $('#resultImage').attr('src', $('#resultImage').data(data.predicted_class.toLowerCase()));
+                $('#result').show();
+            });
+        });
+    </script>
+</body>
+</html>
